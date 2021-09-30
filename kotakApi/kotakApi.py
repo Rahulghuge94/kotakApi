@@ -5,7 +5,8 @@ import datetime,time
 import json
 import sys,os
 
-#path to store session token. it saves token where module is installed.
+
+#path to store session token. it saves path where module is installed.
 m_path=__file__
 m_name=__file__.split("\\")[-1]
 m_path=m_path.replace("\\"+m_name,"")
@@ -13,8 +14,8 @@ m_path=m_path.replace("\\"+m_name,"")
 routes={"login":"/session/1.0/session/login/userid","2fa":"/session/1.0/session/2FA/oneTimeToken","orderbook":"","order":"",
         "orderbook":"/reports/1.0/orders","position":"/positions/1.0/positions","fund":"/margin/1.0/margin","tradebook":"/reports/1.0/trades",
         "ltp":"","no":"/orders/1.0/order/normal","miso":"/orders/1.0/order/mis","mtfo":"/orders/1.0/order/mtf","soro":"/orders/1.0/order/sor",
-        "qtdepth":"/depth/instruments/{instrumentTokens","qtohlc":"/ohlc/instruments/{instrumentTokens","qtltp":"/ltp/instruments/{instrumentTokens",
-        "qtful":"/instruments/{instrumentTokens"}
+        "qtdepth":"/quotes/v1.0/depth/instruments/","qtohlc":"/quotes/v1.0/ohlc/instruments/","qtltp":"/quotes/v1.0/ltp/instruments/",
+        "qtful":"/quotes/v1.0/instruments/","scripcodes":"/scripmaster/1.1/download"}
 
 class kotak_client(object):
     
@@ -35,6 +36,7 @@ class kotak_client(object):
         data=json.dumps({"userid":str(self.userid),"password":str(self.password)})
         headers = { "Accept": "application/json","consumerKey": self.consumer_key,"ip": "1.1.1.1", "appId": "KotakAPI","Content-Type": "application/json", "Authorization": "Bearer "+self.access_token,}
         res=self.session.post("https://tradeapi.kotaksecurities.com/apim/session/1.0/session/login/userid",headers=headers,data=data)
+        print(res.json())
         if res.status_code==200:
            self.ott=res.json()["Success"]["oneTimeToken"]
         self.session_2fa()
@@ -47,13 +49,14 @@ class kotak_client(object):
         else:
            data=json.dumps({"userid":str(self.userid)})
         res=self.session.post("https://tradeapi.kotaksecurities.com/apim/session/1.0/session/2FA/oneTimeToken", headers=headers, data=data)
+        print(res.json())
         if res.status_code==200:
            sessiontoken=res.json()["success"]["sessionToken"]
            self.write_session(sessiontoken)
         print("Logged In")
 
     def write_session(self,sessiontoken):
-        file=open(f"{m_path}\\session_.json","w")
+        file=open(f"{m_name}\\session_.json","w")
         json.dump({"sessiontoken":sessiontoken},file)
         
     def api_headers(self):
@@ -71,7 +74,7 @@ class kotak_client(object):
            if resp.status_code==403:
               self.login()
               resp=self.session.post(self.url+routes[route],headers=headers,data=data)
-           return resp
+           return resp.json()
         elif method=="GET":
            headers=self.api_headers()
            print(self.url+routes[route]+str_param)
@@ -79,31 +82,31 @@ class kotak_client(object):
            if resp.status_code==403:
               self.login()
               resp=self.session.get(self.url+routes[route]+str_param,headers=headers)
-           return resp
+           return resp.json()
         elif method=="PUT":
            headers=self.api_headers()
            resp=self.session.put(self.url+routes[route],headers=headers,data=data)
            if resp.status_code==403:
               self.login()
               resp=self.session.put(self.url+routes[route],headers=headers,data=data)
-           return resp
+           return resp.json()
         elif method=="DELETE":
            headers=self.api_headers()
            resp=self.session.delete(self.url+routes[route]+str_param,headers=headers)
            if resp.status_code==403:
               self.login()
               resp=self.session.delete(self.url+routes[route]+str_param,headers=headers)
-           return resp
+           return resp.json()
         else:
            return "Unknown Http method."
            
     def get_session(self):
-        if not os.path.isfile(f"{m_path}\\session_.json"):
+        if not os.path.isfile("session_.json"):
            print("Not found session token. Generate session token.")
            return None
-        if os.path.isfile(f"{m_path}\\session_.json"):
+        if os.path.isfile(f"{m_name}\\session_.json"):
            try:
-               file=open(f"{m_path}\\session_.json","r")
+               file=open(f"{m_name}\\session_.json","r")
                dic=json.load(file)
                return dic["sessiontoken"]
            except:
@@ -121,7 +124,7 @@ class kotak_client(object):
     def tradebook(self,str_param=None):
         return self.api_helper("GET",route="tradebook")
 
-    def order(self,price:float,qty:int,bs:str,scripcode:int,,triggerprc:float=0,ordertype:str="N",variety:str="REGULAR",validity:str="GFD"):
+    def order(self,price:float,qty:int,bs:str,scripcode:int,triggerprc:float=0,ordertype:str="N",variety:str="REGULAR",validity:str="GFD"):
         route=""
         if ordertype=="N":
            route="no"
@@ -131,8 +134,10 @@ class kotak_client(object):
            route="mtfo"
         elif ordertype=="SOR":
            route="soro"
-        trsnstp={"B":"BUY","S":"SELL"}
-        data=json({"instrumentToken":scripcode,"transactionType":trsnstp[bs],"quantity":qty,"price":price,"validity":validity,"variety":variety,"disclosedQuantity":0,"triggerPrice":trggerprc,"tag":"string"})
+        ttype={"B":"BUY","S":"SELL"}
+        print(1)
+        data=json.dumps({"instrumentToken":scripcode,"transactionType":ttype[bs],"quantity":qty,"price":price,"validity":validity,"variety":variety,"disclosedQuantity":0,"triggerPrice":triggerprc,"tag":"string"})
+        print(1)
         return self.api_helper("POST",route=route,data=data)
     
     def modify_order(self,orderid:str,price:float,qty:int,triggerprc:float=0,ordertype:str="N",validity:str="GFD"):
@@ -172,4 +177,8 @@ class kotak_client(object):
            route="qtohlc"
         else:
            return "provide correct quote type."
-        return self.api_helper("DELETE",route=route,str_param=str(scripcode))
+        return self.api_helper("GET",route=route,str_param=str(scripcode))
+    
+    def get_scripcode(self,):
+        return self.api_helper("GET",route="scripcodes")
+   
