@@ -19,7 +19,7 @@ routes={"login":"/session/1.0/session/login/userid","2fa":"/session/1.0/session/
 
 class kotak_client(object):
     
-    def __init__(self,userid:str=None,password:str=None,access_token:str=None,consumer_key:str=None,access_code:str=None,app_id:str=None,ip:str= "127.0.0.1"):
+    def __init__(self,userid:str=None,password:str=None,access_token:str=None,consumer_key:str=None,access_code:str=None,app_id:str=None,ip:str= "1.1.1.1"):
         self.session=requests.session()
         self.userid=userid
         self.password=password
@@ -34,7 +34,9 @@ class kotak_client(object):
         
     def login(self):
         data=json.dumps({"userid":str(self.userid),"password":str(self.password)})
-        headers = { "Accept": "application/json","consumerKey": self.consumer_key,"ip": "1.1.1.1", "appId": "KotakAPI","Content-Type": "application/json", "Authorization": "Bearer "+self.access_token,}
+        print(data)
+        headers = { "Accept": "application/json","consumerKey": self.consumer_key,"ip": self.ip, "appId": self.app_id,"Content-Type": "application/json", "Authorization": "Bearer "+self.access_token,}
+        print(headers)
         res=self.session.post("https://tradeapi.kotaksecurities.com/apim/session/1.0/session/login/userid",headers=headers,data=data)
         print(res.json())
         if res.status_code==200:
@@ -56,7 +58,7 @@ class kotak_client(object):
         print("Logged In")
 
     def write_session(self,sessiontoken):
-        file=open(f"{m_name}\\session_.json","w")
+        file=open(f"{m_path}\\session_.json","w")
         json.dump({"sessiontoken":sessiontoken},file)
         
     def api_headers(self):
@@ -101,12 +103,12 @@ class kotak_client(object):
            return "Unknown Http method."
            
     def get_session(self):
-        if not os.path.isfile("session_.json"):
+        if not os.path.isfile(f"{{m_path}}\\session_.json"):
            print("Not found session token. Generate session token.")
            return None
-        if os.path.isfile(f"{m_name}\\session_.json"):
+        if os.path.isfile(f"{{m_path}}\\session_.json"):
            try:
-               file=open(f"{m_name}\\session_.json","r")
+               file=open(f"{{m_path}}\\session_.json","r")
                dic=json.load(file)
                return dic["sessiontoken"]
            except:
@@ -178,7 +180,4 @@ class kotak_client(object):
         else:
            return "provide correct quote type."
         return self.api_helper("GET",route=route,str_param=str(scripcode))
-    
-    def get_scripcode(self,):
-        return self.api_helper("GET",route="scripcodes")
    
