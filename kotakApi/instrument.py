@@ -23,6 +23,18 @@ class Instrument:
         df = pd.read_table("Instruments.txt",delimiter='|')
         return df
     
-    def get(self,symbol,strike,expiry,option_type):
+    def get(self,symbol:str,strike:int,expiry:str,option_type:str):
         tmp=self.df[(self.df["instrumentName"]==symbol) & (self.df["expiry"]==expiry) & (self.df["strike"]==strike) & (self.df["optionType"]==option_type)]
-        return tmp
+        return tmp.to_dict("records")[0]
+    
+    def get_future(self,symbol:str,expiry:str):
+        tmp=self.df[(self.df["instrumentName"]==symbol) & (self.df["expiry"]==expiry) & (self.df["optionType"]=="XX")]
+        return tmp.to_dict("records")[0]
+
+    def get_all_instrument_by_expiry(self,symbol:str,expiry:str):
+        tmp=self.df[(self.df["instrumentName"]==symbol) & (self.df["expiry"]==expiry)]
+        return tmp.to_dict("records")
+
+
+        
+#i=Instrument()
