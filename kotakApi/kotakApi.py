@@ -7,12 +7,12 @@ import sys,os
 
 
 #path to store session token. it saves path where module is installed.
-m_path=__file__
-m_name=__file__.split("\\")[-1]
-m_path=m_path.replace("\\"+m_name,"")
+#m_path=__file__
+#m_name=__file__.split("\\")[-1]
+#m_path=m_path.replace("\\"+m_name,"")
 
 routes={"login":"/session/1.0/session/login/userid","2fa":"/session/1.0/session/2FA/oneTimeToken","orderbook":"","order":"",
-        "orderbook":"/reports/1.0/orders","position":"/positions/1.0/positions","fund":"/margin/1.0/margin","tradebook":"/reports/1.0/trades",
+        "orderbook":"/reports/1.0/orders","position":"/positions/1.0/positions/","fund":"/margin/1.0/margin","tradebook":"/reports/1.0/trades",
         "ltp":"","no":"/orders/1.0/order/normal","miso":"/orders/1.0/order/mis","mtfo":"/orders/1.0/order/mtf","soro":"/orders/1.0/order/sor",
         "qtdepth":"/quotes/v1.0/depth/instruments/","qtohlc":"/quotes/v1.0/ohlc/instruments/","qtltp":"/quotes/v1.0/ltp/instruments/",
         "qtful":"/quotes/v1.0/instruments/","scripcodes":"/scripmaster/1.1/download"}
@@ -33,17 +33,18 @@ class kotak_client(object):
         self.sessiontoken=self.get_session()
         
     def login(self):
+        """logged u in and store session token for multi instances."""
         data=json.dumps({"userid":str(self.userid),"password":str(self.password)})
-        print(data)
         headers = { "Accept": "application/json","consumerKey": self.consumer_key,"ip": self.ip, "appId": self.app_id,"Content-Type": "application/json", "Authorization": "Bearer "+self.access_token,}
-        print(headers)
         res=self.session.post("https://tradeapi.kotaksecurities.com/apim/session/1.0/session/login/userid",headers=headers,data=data)
-        print(res.json())
         if res.status_code==200:
            self.ott=res.json()["Success"]["oneTimeToken"]
+        if res.status_code!=200:
+           return res.json()
         self.session_2fa()
 
     def session_2fa(self):
+        """get sessiontoken from session api"""
         headers = { "accept": "application/json","oneTimeToken": self.ott,"consumerKey": self.consumer_key,"ip": "1.1.1.1", "appId": "KotakAPI","Content-Type": "application/json", "Authorization": "Bearer "+self.access_token,}
         data=None
         if not self.access_code:
@@ -51,15 +52,18 @@ class kotak_client(object):
         else:
            data=json.dumps({"userid":str(self.userid)})
         res=self.session.post("https://tradeapi.kotaksecurities.com/apim/session/1.0/session/2FA/oneTimeToken", headers=headers, data=data)
-        print(res.json())
         if res.status_code==200:
            sessiontoken=res.json()["success"]["sessionToken"]
            self.write_session(sessiontoken)
+        if res.status_code!=200:
+           return res.json()
         print("Logged In")
 
     def write_session(self,sessiontoken):
-        file=open(f"{m_path}\\session_.json","w")
+        """writes sessiontoken to json file."""
+        file=open("session_.json","w")
         json.dump({"sessiontoken":sessiontoken},file)
+        file.close()
         
     def api_headers(self):
         headers = { "accept": "application/json","Content-Type": "application/json","consumerKey": self.consumer_key,"sessionToken":self.get_session(),"Authorization": "Bearer "+self.access_token,}
@@ -103,21 +107,25 @@ class kotak_client(object):
            return "Unknown Http method."
            
     def get_session(self):
-        if not os.path.isfile(f"{{m_path}}\\session_.json"):
+        """return stored sessiontoken from json file."""
+        
+        if not os.path.isfile("session_.json"):
            print("Not found session token. Generate session token.")
            return None
-        if os.path.isfile(f"{{m_path}}\\session_.json"):
+        if os.path.isfile("session_.json"):
            try:
-               file=open(f"{{m_path}}\\session_.json","r")
+               file=open("session_.json","r")
                dic=json.load(file)
                return dic["sessiontoken"]
            except:
               print("error while accessing file 'session_.json'. please delete file.")
 
     def fund(self,str_param=None):
+        """returns fund."""
         return self.api_helper("GET",route="fund")
 
-    def position(self,str_param=None):
+    def position(self,str_param="open"):
+        
         return self.api_helper("GET",route="position",str_param=str_param)
     
     def orderbook(self,str_param=None):
@@ -155,7 +163,7 @@ class kotak_client(object):
         data=json({"orderId":orderid,"quantity":qty,"price":price,"validity":validity,"disclosedQuantity":0,"triggerPrice":trggerprc})
         return self.api_helper("PUT",route=route,data=data)
     
-    def cancel_order(self,orderid:str):
+    def cancel_order(self,orderid:str,ordertype="N"):
         route=""
         if ordertype=="N":
            route="no"
