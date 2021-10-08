@@ -15,7 +15,7 @@ routes={"login":"/session/1.0/session/login/userid","2fa":"/session/1.0/session/
         "orderbook":"/reports/1.0/orders","position":"/positions/1.0/positions/","fund":"/margin/1.0/margin","tradebook":"/reports/1.0/trades",
         "ltp":"","no":"/orders/1.0/order/normal","miso":"/orders/1.0/order/mis","mtfo":"/orders/1.0/order/mtf","soro":"/orders/1.0/order/sor",
         "qtdepth":"/quotes/v1.0/depth/instruments/","qtohlc":"/quotes/v1.0/ohlc/instruments/","qtltp":"/quotes/v1.0/ltp/instruments/",
-        "qtful":"/quotes/v1.0/instruments/","scripcodes":"/scripmaster/1.1/download"}
+        "qtful":"/quotes/v1.0/instruments/","scripcodes":"/scripmaster/1.1/download","cano":"/orders/1.0/orders/"}
 
 class kotak_client(object):
     
@@ -83,7 +83,6 @@ class kotak_client(object):
            return resp.json()
         elif method=="GET":
            headers=self.api_headers()
-           print(self.url+routes[route]+str_param)
            resp=self.session.get(self.url+routes[route]+str_param,headers=headers)
            if resp.status_code==403:
               self.login()
@@ -91,6 +90,7 @@ class kotak_client(object):
            return resp.json()
         elif method=="PUT":
            headers=self.api_headers()
+           print(method,headers,self.url+routes[route],data)
            resp=self.session.put(self.url+routes[route],headers=headers,data=data)
            if resp.status_code==403:
               self.login()
@@ -160,19 +160,11 @@ class kotak_client(object):
            route="mtfo"
         elif ordertype=="SOR":
            route="soro"
-        data=json({"orderId":orderid,"quantity":qty,"price":price,"validity":validity,"disclosedQuantity":0,"triggerPrice":trggerprc})
+        data=json.dumps({"orderId":orderid,"quantity":qty,"price":price,"validity":validity,"disclosedQuantity":0,"triggerPrice":triggerprc})
         return self.api_helper("PUT",route=route,data=data)
     
-    def cancel_order(self,orderid:str,ordertype="N"):
-        route=""
-        if ordertype=="N":
-           route="no"
-        elif ordertype=="MIS":
-           route="miso"
-        elif ordertype=="MTF":
-           route="mtfo"
-        elif ordertype=="SOR":
-           route="soro"
+    def cancel_order(self,orderid:str):
+        route="cano"
         return self.api_helper("DELETE",route=route,str_param=str(orderid))
     
     def quote(self,scripcode:str,quote_type="LTP"):
@@ -188,4 +180,3 @@ class kotak_client(object):
         else:
            return "provide correct quote type."
         return self.api_helper("GET",route=route,str_param=str(scripcode))
-   
