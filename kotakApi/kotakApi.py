@@ -44,7 +44,7 @@ class kotak_client(object):
         self.session_2fa()
 
     def session_2fa(self):
-        """get sessiontoken from session api"""
+        """get sessiontoken from session api."""
         headers = { "accept": "application/json","oneTimeToken": self.ott,"consumerKey": self.consumer_key,"ip": "1.1.1.1", "appId": "KotakAPI","Content-Type": "application/json", "Authorization": "Bearer "+self.access_token,}
         data=None
         if not self.access_code:
@@ -125,13 +125,15 @@ class kotak_client(object):
         return self.api_helper("GET",route="fund")
 
     def position(self,str_param="open"):
-        
+        """returns positions."""
         return self.api_helper("GET",route="position",str_param=str_param)
     
     def orderbook(self,str_param=None):
+        """returns orderbook."""
         return self.api_helper("GET",route="orderbook")
     
     def tradebook(self,str_param=None):
+        """returns orderbook."""
         return self.api_helper("GET",route="tradebook")
 
     def order(self,price:float,qty:int,bs:str,scripcode:int,triggerprc:float=0,ordertype:str="N",variety:str="REGULAR",validity:str="GFD"):
@@ -145,9 +147,9 @@ class kotak_client(object):
         elif ordertype=="SOR":
            route="soro"
         ttype={"B":"BUY","S":"SELL"}
-        print(1)
+        #print(1)
         data=json.dumps({"instrumentToken":scripcode,"transactionType":ttype[bs],"quantity":qty,"price":price,"validity":validity,"variety":variety,"disclosedQuantity":0,"triggerPrice":triggerprc,"tag":"string"})
-        print(1)
+        #print(1)
         return self.api_helper("POST",route=route,data=data)
     
     def modify_order(self,orderid:str,price:float,qty:int,triggerprc:float=0,ordertype:str="N",validity:str="GFD"):
@@ -180,3 +182,4 @@ class kotak_client(object):
         else:
            return "provide correct quote type."
         return self.api_helper("GET",route=route,str_param=str(scripcode))
+ 
